@@ -52,7 +52,7 @@ for line in input:
             line_digit = line[i]
             break
 
-    for i in range(len(line) - 2, -1, -1):
+    for i in range(len(line) - 1, -1, -1):
         line_buffer = line[i:]
         check, word = is_spelled_digit(line_buffer)
         if (check):
