@@ -34,7 +34,7 @@ def spelled_digit_to_str_digit(word):
             return "ERROR"
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(script_directory, "day1_1_input.txt")
+file_path = os.path.join(script_directory, "1_input.txt")
 input = open(file_path, 'r')
 
 result = 0
