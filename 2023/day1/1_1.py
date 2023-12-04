@@ -16,8 +16,8 @@ for line in input:
         if (line[i].isdigit()):
             line_digit += line[i]
             break
-    line_value = int(line_digit)
-    
-    result += line_value
+    if line_digit != "":
+        line_value = int(line_digit)
+        result += line_value
 
 print(result)
