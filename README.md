@@ -1,4 +1,4 @@
-# ⭐ Adevnt of Code 🎄
+# ⭐ Advent of Code 🎄
 
 This repository contains all my solutions to the [AOC](https://adventofcode.com/) puzzles.
 
