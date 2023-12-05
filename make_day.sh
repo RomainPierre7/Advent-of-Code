@@ -33,11 +33,7 @@ input_file = open(file_path, 'r')" > "$year/day$day/${day}_1.py"
 fi
 
 if [ ! -f "$year/day$day/${day}_2.py" ]; then
-    echo "import os
-
-script_directory = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(script_directory, '${day}_input.txt')
-input_file = open(file_path, 'r')" > "$year/day$day/${day}_2.py"
+    touch "$year/day$day/${day}_2.py"
     echo "Created file ${day}_2.py"
 fi
 
