@@ -10,11 +10,6 @@ for line in input_file:
 
 PLATFORM = tuple(tuple(line) for line in PLATFORM)
 
-NORTH = 0
-WEST = 1
-SOUTH = 2
-EAST = 3
-
 def north_tilt(platform):
     res = list(list(c) for c in platform)
     for i in range(len(res)):
