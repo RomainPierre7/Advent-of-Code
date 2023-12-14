@@ -86,7 +86,7 @@ def tilt_cycle_cached(platform):
         CACHE[platform] = res
         return res
 
-# Filling the cache and the beginning of the cycle
+# Filling the cache and go to the beginning of the cycle
 while not is_cycle:
     PLATFORM = tilt_cycle_cached(PLATFORM)
 START_CYCLE_PLATFORM = PLATFORM
@@ -99,9 +99,9 @@ while PLATFORM != START_CYCLE_PLATFORM:
     cycle_length += 1
 
 # Finding the final platform
-start_to_cycle_length = len(CACHE)
+start_to_cycle_length = len(CACHE) - 1
 
-left_cycle_number = (1000000000 - start_to_cycle_length - 1) % cycle_length
+left_cycle_number = (1000000000 - start_to_cycle_length) % cycle_length
 
 PLATFORM = START_CYCLE_PLATFORM
 for i in range(left_cycle_number):
