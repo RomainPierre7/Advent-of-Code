@@ -99,7 +99,7 @@ while PLATFORM != START_CYCLE_PLATFORM:
     cycle_length += 1
 
 # Finding the final platform
-start_to_cycle_length = len(CACHE) - 1
+start_to_cycle_length = len(CACHE) + 1
 
 left_cycle_number = (1000000000 - start_to_cycle_length) % cycle_length
 
