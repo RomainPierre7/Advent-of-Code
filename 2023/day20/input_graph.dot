@@ -41,6 +41,8 @@ digraph G {
     ng [shape=circle, color=blue];
     nn [shape=ellipse, color=green];
     ch [shape=circle, color=blue];
+    mr [shape=circle, color=blue];
+    cv [shape=circle, color=blue];
     fc [shape=ellipse, color=green];
     pf [shape=ellipse, color=green];
     pk [shape=circle, color=blue];
@@ -55,6 +57,7 @@ digraph G {
     gm [shape=circle, color=blue];
     vk [shape=ellipse, color=green];
     xq [shape=ellipse, color=green];
+    rx [shape=box, color=black];
 
     jc -> vq;
     jc -> mf;
