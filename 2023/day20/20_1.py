@@ -18,15 +18,20 @@ for line in input_file:
 
 LOW, HIGH = 0, 1
 OFF, ON = 0, 1
-is_running = False
 
+messages_to_send = [[] for _ in range(len(MODULES) + 1)] # last slot for sending message to inexisting node (useful for the counting)
 module_status = {i: OFF for i, mod in enumerate(MODULES) if mod[0] == '%'}
 conjunction_memory = {i: {} for i, mod in enumerate(MODULES) if mod[0] == '&'}
-messages_to_send = [[] for _ in MODULES]
+
+for i in conjunction_memory.keys():
+    conj = MODULES[i]
+    for mod in MODULES:
+        if conj[1] in mod[2]:
+            conjunction_memory[i][mod[1]] = LOW
 
 def clear_messages_to_send():
     global messages_to_send
-    messages_to_send = [[] for _ in MODULES]
+    messages_to_send = [[] for _ in range(len(MODULES) + 1)]
 
 def index_node(node: str):
     for i, mod in enumerate(MODULES):
@@ -38,6 +43,8 @@ def send(value: int, sender: str, dest: list[str]):
         idx = index_node(d)
         if idx != None:
             messages_to_send[idx].append((value, sender))
+        else:
+            messages_to_send[-1].append((value, sender))
 
 def process(messages_to_process: list[int], idx: int):
     mod = MODULES[idx]
@@ -69,28 +76,26 @@ def count(messages_to_send):
                 high_count += 1
     return low_count, high_count
 
-
-def start():
+def push_button():
     global is_running
-    is_running = True
     send(LOW, "button", ["broadcaster"])
     low_count, high_count = 1, 0
-    while(is_running):
+    while(True):
         messages_to_process = messages_to_send.copy()
         clear_messages_to_send()
-        for i in range(len(messages_to_process)):
+        for i in range(len(messages_to_process[:-1])):
             if messages_to_process[i] != []:
-                process(messages_to_process, i)
-        if all(m == [] for m in messages_to_send):
-            is_running = False
+                process(messages_to_process[:-1], i)
         new_low_count, new_high_count = count(messages_to_send)
         low_count += new_low_count
         high_count += new_high_count
+        if all(m == [] for m in messages_to_send[:-1]):
+            break
     return low_count, high_count
 
 low_count, high_count = 0, 0
 for _ in range(1000):
-    l, h = start()
+    l, h = push_button()
     low_count += l
     high_count += h
 
