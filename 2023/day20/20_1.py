@@ -77,7 +77,6 @@ def count(messages_to_send):
     return low_count, high_count
 
 def push_button():
-    global is_running
     send(LOW, "button", ["broadcaster"])
     low_count, high_count = 1, 0
     while(True):
