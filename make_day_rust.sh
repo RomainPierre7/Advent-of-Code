@@ -7,23 +7,24 @@ fi
 
 year="$1"
 day="$2"
+formatted_day=$(printf "%02d" $day)
 
 if [ ! -d "$year" ]; then
     mkdir "$year"
     echo "Created directory $year"
 fi
 
-if [ ! -d "$year/day$day" ]; then
-    mkdir "$year/day$day"
-    echo "Created directory day$day"
+if [ ! -d "$year/day$formatted_day" ]; then
+    mkdir "$year/day$formatted_day"
+    echo "Created directory day$formatted_day"
 fi
 
-if [ ! -f "$year/day$day/${day}_input.txt" ]; then
-    touch "$year/day$day/${day}_input.txt"
+if [ ! -f "$year/day$formatted_day/${day}_input.txt" ]; then
+    touch "$year/day$formatted_day/${day}_input.txt"
     echo "Created file ${day}_input.txt"
 fi
 
-if [ ! -f "$year/day$day/${day}_1.py" ]; then
+if [ ! -f "$year/day$formatted_day/${day}_1.py" ]; then
     echo 'use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -52,12 +53,12 @@ where
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
-' > "$year/day$day/${day}_1.rs"
+' > "$year/day$formatted_day/${day}_1.rs"
     echo "Created file ${day}_1.rs"
 fi
 
-if [ ! -f "$year/day$day/${day}_2.rs" ]; then
-    touch "$year/day$day/${day}_2.rs"
+if [ ! -f "$year/day$formatted_day/${day}_2.rs" ]; then
+    touch "$year/day$formatted_day/${day}_2.rs"
     echo "Created file ${day}_2.rs"
 fi
 
