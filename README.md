@@ -2,6 +2,9 @@
 
 This repository contains all my solutions to the [AOC](https://adventofcode.com/) puzzles.
 
+2023: Made in Python 🐍
+2024: Made in Rust 🦀
+
 ```
 
                *             ,
