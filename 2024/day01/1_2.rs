@@ -27,9 +27,6 @@ fn main() -> io::Result<()> {
 
     assert_eq!(vec1.len(), vec2.len());
 
-    vec1.sort();
-    vec2.sort();
-
     let mut res: i32 = 0;
 
     for i in 0..vec1.len() {
