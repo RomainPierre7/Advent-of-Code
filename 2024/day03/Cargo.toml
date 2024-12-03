@@ -1,0 +1,12 @@
+[package]
+name = "AOC_2024_Day_3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = "1"
+
+[[bin]]
+name = "AOC_2024_Day_3"
+#path = "3_1.rs"
+path = "3_2.rs"
