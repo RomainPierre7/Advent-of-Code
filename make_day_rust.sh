@@ -37,7 +37,6 @@ fn main() -> io::Result<()> {
     if let Ok(lines) = read_lines(path) {
         for line in lines {
             if let Ok(content) = line {
-                // Get content
                 let mut vec: Vec<i32> = Vec::new();
                 for number in content.split_whitespace() {
                     if let Ok(num) = number.parse::<i32>() {
@@ -51,7 +50,6 @@ fn main() -> io::Result<()> {
         }
     }
 
-    // Process
     println!(\"{:?}\", data);
 
     Ok(())
