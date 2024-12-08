@@ -33,15 +33,18 @@ fn main() -> io::Result<()> {
                 let diff_i = i2 as i32 - i1 as i32;
                 let diff_j = j2 as i32 - j1 as i32;
                 if diff_i != 0 && diff_j != 0 {
-                    let antinode_i = i2 as i32 + diff_i;
-                    let antinode_j = j2 as i32 + diff_j;
+                    let mut antinode_i = i2 as i32;
+                    let mut antinode_j = j2 as i32;
 
-                    if antinode_i >= 0
+                    while antinode_i >= 0
                         && antinode_j >= 0
                         && antinode_i < height as i32
                         && antinode_j < width as i32
                     {
                         antinodes.insert((antinode_i as usize, antinode_j as usize));
+
+                        antinode_i += diff_i;
+                        antinode_j += diff_j;
                     }
                 }
             }
