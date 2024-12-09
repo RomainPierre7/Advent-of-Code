@@ -34,8 +34,6 @@ fn main() -> io::Result<()> {
         }
     }
 
-    println!("{:?}", data);
-
     let compressed = compress_data(data);
 
     let res = checksum(compressed);
@@ -59,35 +57,35 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
     let mut moved_data: HashSet<i32> = HashSet::new();
 
     let mut idx = 0;
-    let mut offset = 0;
-    let mut last_added: (u32, u32) = (0, 0);
+    let mut offset = 0; // Useful to know how much the first free is already used
+    let mut last_added: (u32, u32) = (0, 0); // Useful in the second loop to know if the first block has already an added part
     for i in (0..data.len()).rev() {
         let (mut size1, id1) = data[i];
         if id1 >= 0 && !moved_data.contains(&id1) {
-            // try to move the data block
+            // Is a data block => search free block
             for j in 0..data.len() {
                 let (mut size2, id2) = data[j];
-                if id2 <= -1 && !used_free.contains(&id2) {
-                    // free block found
-                    // GERER LE CAS DES 0
+                if id2 < 0 && !used_free.contains(&id2) {
+                    // Free block found
                     size2 -= offset;
                     let to_fill = min(size1, size2);
                     if to_fill > 0 {
                         compressed.push((to_fill as u32, id1 as u32));
                     }
                     if to_fill == size1 {
-                        // changer la taille du free en un bloc de taille size2 - to_fill
-                        offset = size1;
+                        // All the data has been moved
+                        offset += size1;
                         moved_data.insert(id1);
                         break;
                     } else {
+                        // Only a part of the data has been moved
                         used_free.insert(id2);
                         size1 -= size2;
                         last_added = (last_added.0 + size2, id1 as u32); // USEFUL
                         offset = 0;
                     }
                 } else {
-                    // static bloc to conserve
+                    // Add data when no free available on the left
                     if id2 != id1 && j == idx && !moved_data.contains(&id2) {
                         compressed.push((size2, id2 as u32));
                         moved_data.insert(id2);
@@ -98,7 +96,7 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
         }
     }
 
-    // Add blocs who can't fit
+    // Second loop to add the last blocks (no more free blocks)
     for (mut size1, id1) in data {
         if id1 >= 0 && !moved_data.contains(&id1) {
             if last_added.1 == id1 as u32 && last_added.0 > 0 {
@@ -109,28 +107,6 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
             moved_data.insert(id1);
         }
     }
-
-    println!("RESULT: {:?}", compressed);
-
-    /* println!(
-        "TARGET: {:?}",
-        vec![
-            (2, 0),
-            (2, 9),
-            (1, 8),
-            (3, 1),
-            (3, 8),
-            (1, 2),
-            (3, 7),
-            (3, 3),
-            (1, 6),
-            (2, 4),
-            (1, 6),
-            (4, 5),
-            (1, 6),
-            (1, 6)
-        ]
-    ); */
 
     return compressed;
 }
