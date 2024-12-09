@@ -1,3 +1,5 @@
+use std::cmp::min;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -9,17 +11,19 @@ fn main() -> io::Result<()> {
 
     if let Ok(lines) = read_lines(path) {
         for line in lines {
-            let mut id = 0;
+            let mut id_data = 0;
+            let mut id_free = -1;
             let mut is_free = false;
             if let Ok(content) = line {
                 for number in content.chars() {
                     if let Ok(num) = number.to_string().parse::<u32>() {
                         if is_free {
-                            data.push((num, -1));
+                            data.push((num, id_free));
+                            id_free -= 1;
                             is_free = false;
                         } else {
-                            data.push((num, id));
-                            id += 1;
+                            data.push((num, id_data));
+                            id_data += 1;
                             is_free = true;
                         }
                     } else {
@@ -29,6 +33,8 @@ fn main() -> io::Result<()> {
             }
         }
     }
+
+    println!("{:?}", data);
 
     let compressed = compress_data(data);
 
@@ -49,28 +55,40 @@ where
 
 fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
     let mut compressed: Vec<(u32, u32)> = Vec::new();
+    let mut used_free: HashSet<i32> = HashSet::new();
+    let mut moved_data: HashSet<i32> = HashSet::new();
 
     let mut idx = 0;
+    let mut offset = 0;
     for i in (0..data.len()).rev() {
-        let (size1, id1) = data[i];
-        if id1 != -1 {
-            let mut filled = 0;
+        let (mut size1, id1) = data[i];
+        if id1 >= 0 && !moved_data.contains(&id1) {
+            // try to move the data block
             for j in 0..data.len() {
-                let (size2, id2) = data[j];
-                if id2 == -1 {
-                    if filled == size1 {
+                let (mut size2, id2) = data[j];
+                if id2 <= -1 && !used_free.contains(&id2) {
+                    // free block found
+                    // GERER LE CAS DES 0
+                    size2 -= offset;
+                    let to_fill = min(size1, size2);
+                    if to_fill > 0 {
+                        compressed.push((to_fill as u32, id1 as u32));
+                    }
+                    if to_fill == size1 {
+                        // changer la taille du free en un bloc de taille size2 - to_fill
+                        offset = size1;
+                        moved_data.insert(id1);
                         break;
                     } else {
-                        println!("{size1} {filled} {size2}");
-                        let to_fill: i32 = size1 as i32 - filled as i32 - size2 as i32;
-                        if to_fill >= 0 {
-                            compressed.push((to_fill as u32, id1 as u32));
-                            filled += to_fill as u32;
-                        }
+                        used_free.insert(id2);
+                        size1 -= size2;
+                        offset = 0;
                     }
                 } else {
-                    if j == idx {
+                    // static bloc to conserve
+                    if id2 != id1 && j == idx && !moved_data.contains(&id2) {
                         compressed.push((size2, id2 as u32));
+                        moved_data.insert(id2);
                         idx += 2;
                     }
                 }
@@ -102,12 +120,12 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
     return compressed;
 }
 
-fn checksum(data: Vec<(u32, u32)>) -> u32 {
-    let mut res: u32 = 0;
-    let mut idx = 0;
+fn checksum(data: Vec<(u32, u32)>) -> u64 {
+    let mut res: u64 = 0;
+    let mut idx: u64 = 0;
     for (size, id) in data {
         for _ in 0..size {
-            res += idx * id;
+            res += idx * id as u64;
             idx += 1;
         }
     }
