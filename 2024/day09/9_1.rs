@@ -60,6 +60,7 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
 
     let mut idx = 0;
     let mut offset = 0;
+    let mut last_added: (u32, u32) = (0, 0);
     for i in (0..data.len()).rev() {
         let (mut size1, id1) = data[i];
         if id1 >= 0 && !moved_data.contains(&id1) {
@@ -82,6 +83,7 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
                     } else {
                         used_free.insert(id2);
                         size1 -= size2;
+                        last_added = (last_added.0 + size2, id1 as u32); // USEFUL
                         offset = 0;
                     }
                 } else {
@@ -96,9 +98,21 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
         }
     }
 
+    // Add blocs who can't fit
+    for (mut size1, id1) in data {
+        if id1 >= 0 && !moved_data.contains(&id1) {
+            if last_added.1 == id1 as u32 && last_added.0 > 0 {
+                size1 -= last_added.0;
+                last_added = (0, 0);
+            }
+            compressed.push((size1, id1 as u32));
+            moved_data.insert(id1);
+        }
+    }
+
     println!("RESULT: {:?}", compressed);
 
-    println!(
+    /* println!(
         "TARGET: {:?}",
         vec![
             (2, 0),
@@ -113,9 +127,10 @@ fn compress_data(data: Vec<(u32, i32)>) -> Vec<(u32, u32)> {
             (2, 4),
             (1, 6),
             (4, 5),
-            (2, 6),
+            (1, 6),
+            (1, 6)
         ]
-    );
+    ); */
 
     return compressed;
 }
