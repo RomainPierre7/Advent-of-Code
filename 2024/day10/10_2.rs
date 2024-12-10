@@ -36,7 +36,7 @@ fn main() -> io::Result<()> {
     let mut res = 0;
 
     for (i, j) in starting_set {
-        res += count_paths(i, j, &data, 0);
+        res += count_paths(i, j, 0, &data);
     }
 
     println!("{res}");
@@ -52,6 +52,32 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn count_paths(i: usize, j: usize, data: &Vec<Vec<i32>>, res: i32) -> i32 {
+fn count_paths(i: usize, j: usize, value: i32, data: &Vec<Vec<i32>>) -> i32 {
+    if value == 9 {
+        return 1;
+    }
+
+    let steps = vec![
+        (i as isize - 1, j as isize),
+        (i as isize, j as isize + 1),
+        (i as isize + 1, j as isize),
+        (i as isize, j as isize - 1),
+    ];
+
+    let height = data.len();
+    let width = data[0].len();
+
+    let mut res = 0;
+
+    for (new_i, new_j) in steps {
+        if new_i >= 0 && new_j >= 0 && (new_i as usize) < height && (new_j as usize) < width {
+            let new_i = new_i as usize;
+            let new_j = new_j as usize;
+            if data[new_i][new_j] == value + 1 {
+                res += count_paths(new_i, new_j, value + 1, data);
+            }
+        }
+    }
+
     return res;
 }
