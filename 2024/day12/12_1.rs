@@ -1,3 +1,4 @@
+use std::collections::{HashSet, VecDeque};
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -5,25 +6,39 @@ use std::path::Path;
 fn main() -> io::Result<()> {
     let path = "12_input.txt";
 
-    let mut data: Vec<Vec<i32>> = Vec::new();
+    let mut data: Vec<Vec<char>> = Vec::new();
 
     if let Ok(lines) = read_lines(path) {
         for line in lines {
             if let Ok(content) = line {
-                let mut vec: Vec<i32> = Vec::new();
-                for number in content.split_whitespace() {
-                    if let Ok(num) = number.parse::<i32>() {
-                        vec.push(num);
-                    } else {
-                        eprintln!("Line format incorrect: {}", content);
-                    }
-                }
+                let vec: Vec<char> = content.chars().collect();
                 data.push(vec);
             }
         }
     }
 
-    println!("{:?}", data);
+    let height = data.len();
+    let width = data[0].len();
+
+    let mut visited: HashSet<(usize, usize)> = HashSet::new();
+    let mut areas: Vec<HashSet<(usize, usize)>> = Vec::new();
+
+    for i in 0..height {
+        for j in 0..width {
+            if !visited.contains(&(i, j)) {
+                let area = get_area(i, j, &data, &mut visited);
+                areas.push(area);
+            }
+        }
+    }
+
+    let mut res = 0;
+
+    for area in areas {
+        res += area.len() * get_perimeter(&area);
+    }
+
+    println!("{res}");
 
     Ok(())
 }
@@ -36,3 +51,56 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
+fn get_area(
+    start_i: usize,
+    start_j: usize,
+    data: &Vec<Vec<char>>,
+    visited: &mut HashSet<(usize, usize)>,
+) -> HashSet<(usize, usize)> {
+    let mut area: HashSet<(usize, usize)> = HashSet::new();
+    let mut queue: VecDeque<(usize, usize)> = VecDeque::new();
+
+    let target_value = data[start_i][start_j];
+    queue.push_back((start_i, start_j));
+    visited.insert((start_i, start_j));
+
+    let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+    while let Some((i, j)) = queue.pop_front() {
+        area.insert((i, j));
+
+        for (di, dj) in &directions {
+            let new_i = i.wrapping_add(*di as usize);
+            let new_j = j.wrapping_add(*dj as usize);
+
+            if new_i < data.len()
+                && new_j < data[0].len()
+                && !visited.contains(&(new_i, new_j))
+                && data[new_i][new_j] == target_value
+            {
+                visited.insert((new_i, new_j));
+                queue.push_back((new_i, new_j));
+            }
+        }
+    }
+
+    return area;
+}
+
+fn get_perimeter(area: &HashSet<(usize, usize)>) -> usize {
+    let mut perimeter = 0;
+
+    let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+    for &(i, j) in area {
+        for &(di, dj) in &directions {
+            let neighbor = ((i as isize + di) as usize, (j as isize + dj) as usize);
+
+            if !area.contains(&neighbor) {
+                perimeter += 1;
+            }
+        }
+    }
+
+    return perimeter;
+}
