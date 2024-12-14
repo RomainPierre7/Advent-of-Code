@@ -5,7 +5,33 @@ This repository contains all my solutions to the [AOC](https://adventofcode.com/
 - 2023: Made in Python 🐍
 - 2024: Made in Rust 🦀 (in progress ...)
 
+## Commands 🚀
+
+### Create a new day 📅
+
+```bash
+./make_day_<language>.sh <year> <day>
 ```
+
+### Python 🐍
+
+```bash
+python X_x.py
+```
+
+### Rust 🦀
+
+```bash
+rustc X_x.rs -o X_x.exe -C opt-level=3 && ./X_x.exe
+```
+
+or
+
+```bash
+cargo run --release
+```
+
+## ASCII Art 🎨
 
                *             ,
                            _/^\_
