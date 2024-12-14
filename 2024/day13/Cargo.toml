@@ -8,5 +8,5 @@ regex = "1"
 
 [[bin]]
 name = "AOC_2024_Day_13"
-path = "13_1.rs"
-#path = "13_2.rs"
+#path = "13_1.rs"
+path = "13_2.rs"
