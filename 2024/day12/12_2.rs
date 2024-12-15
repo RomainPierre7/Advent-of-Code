@@ -34,8 +34,11 @@ fn main() -> io::Result<()> {
 
     let mut res = 0;
 
-    for area in areas {
-        res += area.len() * get_perimeter(&area);
+    for area in &areas {
+        if let Some(&(i, j)) = area.iter().next() {
+            println!("{}: {}", data[i][j], get_corner_count(&area));
+            res += area.len() * get_corner_count(&area);
+        }
     }
 
     println!("{res}");
@@ -87,20 +90,71 @@ fn get_area(
     return area;
 }
 
-fn get_perimeter(area: &HashSet<(usize, usize)>) -> usize {
-    let mut perimeter = 0;
+enum Direction {
+    North,
+    South,
+    East,
+    West,
+    NorthEast,
+    SouthEast,
+    SouthWest,
+    NorthWest,
+}
 
-    let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+impl Direction {
+    fn delta(&self) -> (i32, i32) {
+        match self {
+            Direction::North => (0, -1),
+            Direction::South => (0, 1),
+            Direction::East => (1, 0),
+            Direction::West => (-1, 0),
+            Direction::NorthEast => (1, -1),
+            Direction::SouthEast => (1, 1),
+            Direction::SouthWest => (-1, 1),
+            Direction::NorthWest => (-1, -1),
+        }
+    }
+}
 
-    for &(i, j) in area {
-        for &(di, dj) in &directions {
-            let neighbor = ((i as isize + di) as usize, (j as isize + dj) as usize);
+fn add_pos(p1: (i32, i32), p2: (i32, i32)) -> (i32, i32) {
+    (p1.0 + p2.0, p1.1 + p2.1)
+}
 
-            if !area.contains(&neighbor) {
-                perimeter += 1;
-            }
+fn is_adj(pos: (i32, i32), delta: (i32, i32), area: &HashSet<(usize, usize)>) -> bool {
+    let p2 = add_pos(pos, delta);
+    area.contains(&(p2.0 as usize, p2.1 as usize))
+}
+
+fn get_corner_count(area: &HashSet<(usize, usize)>) -> usize {
+    let mut corners = 0;
+
+    for &(x, y) in area {
+        let pos = (x as i32, y as i32);
+
+        let north = is_adj(pos, Direction::North.delta(), area);
+        let south = is_adj(pos, Direction::South.delta(), area);
+        let east = is_adj(pos, Direction::East.delta(), area);
+        let west = is_adj(pos, Direction::West.delta(), area);
+
+        let northeast = is_adj(pos, Direction::NorthEast.delta(), area);
+        let southeast = is_adj(pos, Direction::SouthEast.delta(), area);
+        let southwest = is_adj(pos, Direction::SouthWest.delta(), area);
+        let northwest = is_adj(pos, Direction::NorthWest.delta(), area);
+
+        // Check corners for this cell
+        if (north && east) && !northeast {
+            corners += 1;
+        }
+        if (south && east) && !southeast {
+            corners += 1;
+        }
+        if (south && west) && !southwest {
+            corners += 1;
+        }
+        if (north && west) && !northwest {
+            corners += 1;
         }
     }
 
-    return perimeter;
+    corners
 }
