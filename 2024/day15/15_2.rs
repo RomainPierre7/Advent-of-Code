@@ -39,10 +39,6 @@ fn main() -> io::Result<()> {
     let heigth = grid.len();
     let width = grid[0].len();
 
-    println!("{:?}", instructions);
-    print(grid.clone());
-    println!();
-
     let mut robot = (0, 0);
 
     for i in 0..heigth {
@@ -55,9 +51,6 @@ fn main() -> io::Result<()> {
 
     for instr in instructions {
         make_step(&mut grid, &mut robot, instr);
-        println!("{instr}");
-        print(grid.clone());
-        println!();
     }
 
     let res = gps(grid);
@@ -101,35 +94,12 @@ fn make_step(grid: &mut Vec<Vec<char>>, robot: &mut (usize, usize), instr: char)
     } else {
         let linked_boxes = get_linked_boxes(*robot, dir, grid);
         if bloc_is_movable(&linked_boxes, dir, grid) {
-            move_bloc(*robot, &linked_boxes, dir, grid);
+            move_bloc(&linked_boxes, dir, grid);
             grid[new_robot.0][new_robot.1] = '@';
             grid[robot.0][robot.1] = '.';
             robot.0 = new_robot.0;
             robot.1 = new_robot.1;
         }
-    }
-}
-
-fn gps(grid: Vec<Vec<char>>) -> u64 {
-    let mut res: u64 = 0;
-
-    let heigth = grid.len();
-    let width = grid[0].len();
-
-    for i in 0..heigth {
-        for j in 0..width {
-            if grid[i][j] == 'O' {
-                res += 100 * i as u64 + j as u64;
-            }
-        }
-    }
-
-    return res;
-}
-
-fn print(grid: Vec<Vec<char>>) {
-    for i in 0..grid.len() {
-        println!("{:?}", grid[i]);
     }
 }
 
@@ -139,7 +109,6 @@ fn get_linked_boxes(
     grid: &Vec<Vec<char>>,
 ) -> HashSet<(usize, usize)> {
     let mut linked_boxes: HashSet<(usize, usize)> = HashSet::new();
-
     let mut last_added: HashSet<(usize, usize)> = HashSet::new();
     last_added.insert(robot);
 
@@ -156,25 +125,30 @@ fn get_linked_boxes(
                 (pos.0 as isize + dir.0) as usize,
                 (pos.1 as isize + dir.1) as usize,
             );
+
+            if linked_boxes.contains(&new_pos) {
+                continue;
+            }
+
             if grid[new_pos.0][new_pos.1] == '[' {
                 linked_boxes.insert(new_pos);
                 linked_boxes.insert((new_pos.0, new_pos.1 + 1));
                 new_added.insert(new_pos);
+                new_added.insert((new_pos.0, new_pos.1 + 1));
             } else if grid[new_pos.0][new_pos.1] == ']' {
                 linked_boxes.insert(new_pos);
                 linked_boxes.insert((new_pos.0, new_pos.1 - 1));
                 new_added.insert(new_pos);
+                new_added.insert((new_pos.0, new_pos.1 - 1));
             }
         }
 
-        if new_added.len() > 0 {
+        if !new_added.is_empty() {
             rec(new_added, linked_boxes, dir, grid);
         }
     }
 
     rec(last_added, &mut linked_boxes, dir, grid);
-
-    //println!("Found {} linked boxes", linked_boxes.len());
 
     return linked_boxes;
 }
@@ -190,28 +164,49 @@ fn bloc_is_movable(
             (pos.1 as isize + dir.1) as usize,
         );
         if grid[new_pos.0][new_pos.1] == '#' {
-            println!("Bloc is not movable");
             return false;
         }
     }
-    println!("Bloc is movable");
     return true;
 }
 
 fn move_bloc(
-    robot: (usize, usize),
     linked_boxes: &HashSet<(usize, usize)>,
     dir: (isize, isize),
     grid: &mut Vec<Vec<char>>,
 ) {
-    let grid_copy = grid.clone();
+    let mut sorted_boxes: Vec<(usize, usize)> = linked_boxes.iter().cloned().collect();
+    sorted_boxes.sort_by(|a, b| match dir {
+        (-1, 0) => a.0.cmp(&b.0),
+        (1, 0) => b.0.cmp(&a.0),
+        (0, -1) => a.1.cmp(&b.1),
+        (0, 1) => b.1.cmp(&a.1),
+        _ => std::cmp::Ordering::Equal,
+    });
 
-    for pos in linked_boxes {
+    for pos in sorted_boxes {
         let new_pos = (
             (pos.0 as isize + dir.0) as usize,
             (pos.1 as isize + dir.1) as usize,
         );
-        grid[new_pos.0][new_pos.1] = grid_copy[pos.0][pos.1];
+        grid[new_pos.0][new_pos.1] = grid[pos.0][pos.1];
         grid[pos.0][pos.1] = '.';
     }
+}
+
+fn gps(grid: Vec<Vec<char>>) -> u64 {
+    let mut res: u64 = 0;
+
+    let heigth = grid.len();
+    let width = grid[0].len();
+
+    for i in 0..heigth {
+        for j in 0..width {
+            if grid[i][j] == '[' {
+                res += 100 * i as u64 + j as u64;
+            }
+        }
+    }
+
+    return res;
 }
