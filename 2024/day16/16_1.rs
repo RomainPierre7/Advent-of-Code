@@ -21,10 +21,6 @@ fn main() -> io::Result<()> {
         }
     }
 
-    for row in &data {
-        println!("{:?}", row);
-    }
-
     let mut start = (0, 0);
     let mut end = (0, 0);
 
@@ -38,14 +34,11 @@ fn main() -> io::Result<()> {
         }
     }
 
-    let res = dijkstra(&mut data, start, end);
+    let res = dijkstra(&data, start, end);
 
     match res {
-        Some((distance, path)) => {
-            println!("Shortest path distance: {}", distance);
-            println!("Path: {:?}", path);
-            println!("Grid with path:");
-            print_grid(&data);
+        Some(distance) => {
+            println!("{}", distance);
         }
         None => println!("No path found"),
     }
@@ -65,7 +58,7 @@ where
 struct State {
     position: (usize, usize),
     cost: usize,
-    prev_direction: Option<(isize, isize)>, // Add previous direction to the state
+    prev_direction: (isize, isize),
 }
 
 impl Ord for State {
@@ -80,30 +73,23 @@ impl PartialOrd for State {
     }
 }
 
-fn is_changing_direction(prev_dir: Option<(isize, isize)>, new_dir: (isize, isize)) -> bool {
-    match prev_dir {
-        Some(prev) => prev != new_dir,
-        None => false, // No previous direction, so no change
-    }
+fn is_changing_direction(prev_dir: (isize, isize), new_dir: (isize, isize)) -> bool {
+    return prev_dir != new_dir;
 }
 
-fn dijkstra(
-    data: &mut Vec<Vec<char>>,
-    start: (usize, usize),
-    end: (usize, usize),
-) -> Option<(usize, Vec<(usize, usize)>)> {
+fn dijkstra(data: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -> Option<usize> {
     let mut dist = HashMap::new();
-    let mut prev = HashMap::new(); // To track the best path
+    let mut prev = HashMap::new();
     let mut heap = BinaryHeap::new();
 
     dist.insert(start, 0);
     heap.push(State {
         position: start,
         cost: 0,
-        prev_direction: None, // Starting position, no previous direction
+        prev_direction: (0, -1),
     });
 
-    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // Right, Down, Left, Up
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
     while let Some(State {
         position,
@@ -112,25 +98,7 @@ fn dijkstra(
     }) = heap.pop()
     {
         if position == end {
-            let mut path = Vec::new();
-            let mut current = end;
-
-            // Reconstruct the path by following the predecessors
-            while let Some(&prev_pos) = prev.get(&current) {
-                path.push(current);
-                current = prev_pos;
-            }
-            path.push(start);
-            path.reverse(); // Reverse the path to get it from start to end
-
-            // Mark the path on the grid
-            for &p in &path {
-                if data[p.0][p.1] != 'S' && data[p.0][p.1] != 'E' {
-                    data[p.0][p.1] = '*'; // Mark the path with '*'
-                }
-            }
-
-            return Some((cost, path));
+            return Some(cost);
         }
 
         for &(dx, dy) in &directions {
@@ -142,14 +110,11 @@ fn dijkstra(
 
             let new_position = (nx as usize, ny as usize);
 
-            // Check if the new position is a wall '#', and skip it if true
             if data[new_position.0][new_position.1] == '#' {
                 continue;
             }
 
-            let mut new_cost = cost + 1; // Assuming uniform cost for each move
-
-            // Check if the direction is changing and add penalty if needed
+            let mut new_cost = cost + 1;
             if is_changing_direction(prev_direction, (dx, dy)) {
                 new_cost += 1000;
             }
@@ -161,24 +126,14 @@ fn dijkstra(
             }
 
             dist.insert(new_position, new_cost);
-            prev.insert(new_position, position); // Store the predecessor
+            prev.insert(new_position, position);
             heap.push(State {
                 position: new_position,
                 cost: new_cost,
-                prev_direction: Some((dx, dy)), // Store the direction taken
+                prev_direction: (dx, dy),
             });
         }
     }
 
-    None
-}
-
-// Function to print the grid
-fn print_grid(grid: &[Vec<char>]) {
-    for row in grid {
-        for &cell in row {
-            print!("{}", cell);
-        }
-        println!();
-    }
+    return None;
 }
