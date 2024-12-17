@@ -14,20 +14,11 @@ fn main() -> io::Result<()> {
         for line in lines {
             if let Ok(content) = line {
                 if let Some(value) = content.strip_prefix("Register A: ") {
-                    register_a = value
-                        .trim()
-                        .parse::<i32>()
-                        .expect("Failed to parse Register A value");
+                    register_a = value.trim().parse::<i32>().expect("Failed to parse");
                 } else if let Some(value) = content.strip_prefix("Register B: ") {
-                    register_b = value
-                        .trim()
-                        .parse::<i32>()
-                        .expect("Failed to parse Register B value");
+                    register_b = value.trim().parse::<i32>().expect("Failed to parse");
                 } else if let Some(value) = content.strip_prefix("Register C: ") {
-                    register_c = value
-                        .trim()
-                        .parse::<i32>()
-                        .expect("Failed to parse Register C value");
+                    register_c = value.trim().parse::<i32>().expect("Failed to parse");
                 } else if let Some(value) = content.strip_prefix("Program: ") {
                     for number in value.trim().split(',') {
                         if let Ok(num) = number.trim().parse::<i32>() {
@@ -49,7 +40,6 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-// Função auxiliar para ler linhas de um arquivo
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
