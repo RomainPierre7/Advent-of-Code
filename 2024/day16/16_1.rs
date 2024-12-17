@@ -73,10 +73,6 @@ impl PartialOrd for State {
     }
 }
 
-fn is_changing_direction(prev_dir: (isize, isize), new_dir: (isize, isize)) -> bool {
-    return prev_dir != new_dir;
-}
-
 fn dijkstra(data: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -> Option<usize> {
     let mut dist = HashMap::new();
     let mut prev = HashMap::new();
@@ -86,7 +82,7 @@ fn dijkstra(data: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -
     heap.push(State {
         position: start,
         cost: 0,
-        prev_direction: (0, -1),
+        prev_direction: (0, 1), // Start facing east
     });
 
     let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
@@ -115,8 +111,13 @@ fn dijkstra(data: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -
             }
 
             let mut new_cost = cost + 1;
-            if is_changing_direction(prev_direction, (dx, dy)) {
+            if prev_direction != (dx, dy) {
                 new_cost += 1000;
+                let is_opposite_direction =
+                    prev_direction == (-dx, dy) || prev_direction == (dx, -dy);
+                if is_opposite_direction {
+                    new_cost += 1000;
+                }
             }
 
             if let Some(&existing_cost) = dist.get(&new_position) {

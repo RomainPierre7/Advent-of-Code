@@ -31,26 +31,11 @@ fn main() -> io::Result<()> {
     let (min_cost, all_minimal_paths) = dijkstra(&data, start, end);
 
     match min_cost {
-        Some(cost) => {
-            println!("Minimal Cost: {}", cost);
-            println!("Number of Minimal Paths: {}", all_minimal_paths.len());
-
+        Some(_cost) => {
             let distinct_positions: HashSet<(usize, usize)> = all_minimal_paths
                 .iter()
                 .flat_map(|path| path.clone())
                 .collect();
-
-            // DEBUG
-            for i in 0..data.len() {
-                for j in 0..data[i].len() {
-                    if distinct_positions.contains(&(i, j)) {
-                        print!("*");
-                    } else {
-                        print!("{}", data[i][j]);
-                    }
-                }
-                println!();
-            }
 
             let res = distinct_positions.len();
 
@@ -90,10 +75,6 @@ impl PartialOrd for State {
     }
 }
 
-fn is_changing_direction(prev_dir: (isize, isize), new_dir: (isize, isize)) -> bool {
-    prev_dir != new_dir
-}
-
 fn dijkstra(
     data: &Vec<Vec<char>>,
     start: (usize, usize),
@@ -103,11 +84,11 @@ fn dijkstra(
     let mut all_minimal_paths = Vec::new();
     let mut heap = BinaryHeap::new();
 
-    dist.insert(start, 0);
+    dist.insert((start, (0, -1)), 0);
     heap.push(State {
         position: start,
         cost: 0,
-        prev_direction: (0, -1),
+        prev_direction: (0, 1), // Start facing east
         path: vec![start],
     });
 
@@ -150,17 +131,24 @@ fn dijkstra(
             }
 
             let mut new_cost = cost + 1;
-            if is_changing_direction(prev_direction, (dx, dy)) {
+            if prev_direction != (dx, dy) {
                 new_cost += 1000;
+                let is_opposite_direction =
+                    prev_direction == (-dx, dy) || prev_direction == (dx, -dy);
+                if is_opposite_direction {
+                    new_cost += 1000;
+                }
             }
 
-            if let Some(&existing_cost) = dist.get(&new_position) {
+            let new_key = (new_position, (dx, dy));
+
+            if let Some(&existing_cost) = dist.get(&new_key) {
                 if new_cost > existing_cost {
                     continue;
                 }
             }
 
-            dist.insert(new_position, new_cost);
+            dist.insert(new_key, new_cost);
 
             let mut new_path = path.clone();
             new_path.push(new_position);
