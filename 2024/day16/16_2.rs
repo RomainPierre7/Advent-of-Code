@@ -35,13 +35,12 @@ fn main() -> io::Result<()> {
             println!("Minimal Cost: {}", cost);
             println!("Number of Minimal Paths: {}", all_minimal_paths.len());
 
-            // Count distinct positions across all minimal paths
             let distinct_positions: HashSet<(usize, usize)> = all_minimal_paths
                 .iter()
                 .flat_map(|path| path.clone())
                 .collect();
 
-            // Print the grid with * where distinct positions are
+            // DEBUG
             for i in 0..data.len() {
                 for j in 0..data[i].len() {
                     if distinct_positions.contains(&(i, j)) {
@@ -53,7 +52,9 @@ fn main() -> io::Result<()> {
                 println!();
             }
 
-            println!("Number of Distinct Positions: {}", distinct_positions.len());
+            let res = distinct_positions.len();
+
+            println!("{res}");
         }
         None => println!("No path found"),
     }
@@ -120,9 +121,7 @@ fn dijkstra(
         path,
     }) = heap.pop()
     {
-        // If we've found a path to the end
         if position == end {
-            // If this is the first minimal path or matches the current minimal cost
             match min_cost.cmp(&cost) {
                 Ordering::Greater => {
                     min_cost = cost;
@@ -132,44 +131,37 @@ fn dijkstra(
                 Ordering::Equal => {
                     all_minimal_paths.push(path);
                 }
-                Ordering::Less => break, // We've already found minimal paths
+                Ordering::Less => break,
             }
             continue;
         }
 
-        // Explore neighboring positions
         for &(dx, dy) in &directions {
             let (nx, ny) = (position.0 as isize + dx, position.1 as isize + dy);
 
-            // Check boundary conditions
             if nx < 0 || ny < 0 || nx as usize >= data.len() || ny as usize >= data[0].len() {
                 continue;
             }
 
             let new_position = (nx as usize, ny as usize);
 
-            // Check for blocked positions
             if data[new_position.0][new_position.1] == '#' {
                 continue;
             }
 
-            // Calculate new cost
             let mut new_cost = cost + 1;
             if is_changing_direction(prev_direction, (dx, dy)) {
                 new_cost += 1000;
             }
 
-            // Skip if we've found a cheaper or equal path to this position
             if let Some(&existing_cost) = dist.get(&new_position) {
                 if new_cost > existing_cost {
                     continue;
                 }
             }
 
-            // Update distance and create new path
             dist.insert(new_position, new_cost);
 
-            // Create new path by appending current position
             let mut new_path = path.clone();
             new_path.push(new_position);
 
@@ -182,7 +174,6 @@ fn dijkstra(
         }
     }
 
-    // Return minimal cost and all paths with that cost
     if min_cost == usize::MAX {
         (None, Vec::new())
     } else {
