@@ -34,11 +34,8 @@ fn main() -> io::Result<()> {
 
     let mut res = 0;
 
-    for area in &areas {
-        if let Some(&(i, j)) = area.iter().next() {
-            println!("{}: {}", data[i][j], get_corner_count(&area));
-            res += area.len() * get_corner_count(&area);
-        }
+    for area in areas {
+        res += area.len() * get_corner_count(&area);
     }
 
     println!("{res}");
@@ -90,71 +87,64 @@ fn get_area(
     return area;
 }
 
-enum Direction {
-    North,
-    South,
-    East,
-    West,
-    NorthEast,
-    SouthEast,
-    SouthWest,
-    NorthWest,
-}
-
-impl Direction {
-    fn delta(&self) -> (i32, i32) {
-        match self {
-            Direction::North => (0, -1),
-            Direction::South => (0, 1),
-            Direction::East => (1, 0),
-            Direction::West => (-1, 0),
-            Direction::NorthEast => (1, -1),
-            Direction::SouthEast => (1, 1),
-            Direction::SouthWest => (-1, 1),
-            Direction::NorthWest => (-1, -1),
-        }
-    }
-}
-
-fn add_pos(p1: (i32, i32), p2: (i32, i32)) -> (i32, i32) {
-    (p1.0 + p2.0, p1.1 + p2.1)
-}
-
-fn is_adj(pos: (i32, i32), delta: (i32, i32), area: &HashSet<(usize, usize)>) -> bool {
-    let p2 = add_pos(pos, delta);
-    area.contains(&(p2.0 as usize, p2.1 as usize))
-}
-
 fn get_corner_count(area: &HashSet<(usize, usize)>) -> usize {
-    let mut corners = 0;
+    let directions = [
+        (-1, 0),  // N
+        (-1, 1),  // NE
+        (0, 1),   // E
+        (1, 1),   // SE
+        (1, 0),   // S
+        (1, -1),  // SW
+        (0, -1),  // W
+        (-1, -1), // NW
+    ];
 
-    for &(x, y) in area {
-        let pos = (x as i32, y as i32);
+    let mut corner_count = 0;
 
-        let north = is_adj(pos, Direction::North.delta(), area);
-        let south = is_adj(pos, Direction::South.delta(), area);
-        let east = is_adj(pos, Direction::East.delta(), area);
-        let west = is_adj(pos, Direction::West.delta(), area);
+    for &(i, j) in area {
+        let mut has_neighbors = [false; 8];
 
-        let northeast = is_adj(pos, Direction::NorthEast.delta(), area);
-        let southeast = is_adj(pos, Direction::SouthEast.delta(), area);
-        let southwest = is_adj(pos, Direction::SouthWest.delta(), area);
-        let northwest = is_adj(pos, Direction::NorthWest.delta(), area);
-
-        // Check corners for this cell
-        if (north && east) && !northeast {
-            corners += 1;
+        for (k, &(di, dj)) in directions.iter().enumerate() {
+            let neighbor = (i.wrapping_add(di as usize), j.wrapping_add(dj as usize));
+            if area.contains(&neighbor) {
+                has_neighbors[k] = true;
+            }
         }
-        if (south && east) && !southeast {
-            corners += 1;
+
+        let n = has_neighbors[0];
+        let ne = has_neighbors[1];
+        let e = has_neighbors[2];
+        let se = has_neighbors[3];
+        let s = has_neighbors[4];
+        let sw = has_neighbors[5];
+        let w = has_neighbors[6];
+        let nw = has_neighbors[7];
+
+        if n && w && !nw {
+            corner_count += 1;
         }
-        if (south && west) && !southwest {
-            corners += 1;
+        if n && e && !ne {
+            corner_count += 1;
         }
-        if (north && west) && !northwest {
-            corners += 1;
+        if s && w && !sw {
+            corner_count += 1;
+        }
+        if s && e && !se {
+            corner_count += 1;
+        }
+        if !(n || w) {
+            corner_count += 1;
+        }
+        if !(n || e) {
+            corner_count += 1;
+        }
+        if !(s || w) {
+            corner_count += 1;
+        }
+        if !(s || e) {
+            corner_count += 1;
         }
     }
 
-    corners
+    return corner_count;
 }
