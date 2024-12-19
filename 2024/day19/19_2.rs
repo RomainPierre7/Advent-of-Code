@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -28,9 +29,10 @@ fn main() -> io::Result<()> {
     }
 
     let mut res = 0;
+    let mut cache: HashMap<String, u64> = HashMap::new();
 
     for design in &designs {
-        res += possible_combinations(&patterns, design);
+        res += possible_combinations(&patterns, design, &mut cache);
     }
 
     println!("{res}");
@@ -46,18 +48,28 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn possible_combinations(patterns: &Vec<String>, design: &str) -> u32 {
-    let mut res = 0;
+fn possible_combinations(
+    patterns: &[String],
+    design: &str,
+    cache: &mut HashMap<String, u64>,
+) -> u64 {
+    if let Some(&cached_result) = cache.get(design) {
+        return cached_result;
+    }
 
     if design.is_empty() {
         return 1;
     }
 
+    let mut res = 0;
+
     for pattern in patterns {
         if design.starts_with(pattern) {
-            res += possible_combinations(patterns, &design[pattern.len()..]);
+            res += possible_combinations(patterns, &design[pattern.len()..], cache);
         }
     }
+
+    cache.insert(design.to_string(), res);
 
     return res;
 }
