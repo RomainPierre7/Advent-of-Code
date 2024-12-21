@@ -31,22 +31,26 @@ fn main() -> io::Result<()> {
         [Key::Left, Key::Down, Key::Right],
     ];
 
+    let mut res: u64 = 0;
+
     for code in &codes {
+        // Third robot sequence (numeric keypad)
         let code_in_keys = code_to_keys(&code);
         println!("Codes: {:?}", code_in_keys);
-        // Third robot sequence (numeric keypad)
-        let mut seq = get_sequence(&code_in_keys, &numeric_keypad);
-        println!("Seq 3rd: {:?}", seq);
         // Second robot sequence (directional keypad)
-        seq = get_sequence(&seq, &directional_keypad);
-        println!("Seq 2nd: {:?}", seq);
+        let mut seq = get_sequence(&code_in_keys, &numeric_keypad, (3, 2), (3, 0));
+        println!("Seq 2rd: {:?}", seq);
         // First robot sequence (directional keypad)
-        seq = get_sequence(&seq, &directional_keypad);
+        seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
         println!("Seq 1st: {:?}", seq);
         // Sequence to type (directional keypad)
-        seq = get_sequence(&seq, &directional_keypad);
+        seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
         println!("Seq to type: {:?}", seq);
+
+        res += score(&seq, &code);
     }
+
+    println!("{res}");
 
     Ok(())
 }
@@ -103,18 +107,30 @@ fn code_to_keys(code: &Vec<char>) -> Vec<Key> {
     return keys;
 }
 
-fn get_sequence(code: &Vec<Key>, keypad: &Vec<[Key; 3]>) -> Vec<Key> {
+fn get_sequence(
+    code: &Vec<Key>,
+    keypad: &Vec<[Key; 3]>,
+    init_start: (usize, usize),
+    forbidden_case: (usize, usize),
+) -> Vec<Key> {
     let mut seq: Vec<Key> = Vec::new();
     let height = keypad.len();
     let width = keypad[0].len();
-    let mut start = (3, 2);
+    let mut start = init_start;
 
-    fn add_seq(start: (usize, usize), target: (usize, usize), seq: &mut Vec<Key>) {
+    fn add_seq(
+        start: (usize, usize),
+        target: (usize, usize),
+        seq: &mut Vec<Key>,
+        forbidden_case: (usize, usize),
+    ) {
         let row_diff = target.0 as isize - start.0 as isize;
         let col_diff = target.1 as isize - start.1 as isize;
 
-        // If we start from column 0 we start by moving by col to avoid the hole
-        if start.1 == 0 {
+        // Make sure that we do not pass by the forbidden case
+        if (start.1 == forbidden_case.1 && target.0 == forbidden_case.0)
+            || !(start.0 == forbidden_case.0 && target.1 == forbidden_case.1)
+        {
             if col_diff > 0 {
                 for _ in 0..col_diff {
                     seq.push(Key::Right);
@@ -172,7 +188,7 @@ fn get_sequence(code: &Vec<Key>, keypad: &Vec<[Key; 3]>) -> Vec<Key> {
             }
         }
 
-        add_seq(start, target, &mut seq);
+        add_seq(start, target, &mut seq, forbidden_case);
         seq.push(Key::A);
 
         start = target;
@@ -181,6 +197,13 @@ fn get_sequence(code: &Vec<Key>, keypad: &Vec<[Key; 3]>) -> Vec<Key> {
     return seq;
 }
 
-fn get_sequence_from_directional(seq: &Vec<Key>, keypad: &Vec<[Key; 3]>) -> Vec<Key> {
-    return Vec::new();
+fn score(seq: &Vec<Key>, code: &Vec<char>) -> u64 {
+    let numeric_str: String = code.iter().filter(|c| c.is_digit(10)).collect();
+    let numeric_value: u64 = numeric_str
+        .trim_start_matches('0')
+        .parse()
+        .expect("Invalid number");
+    println!("Numeric value: {}", numeric_value);
+    println!("Sequence: {:?}", seq.len());
+    return seq.len() as u64 * numeric_value;
 }
