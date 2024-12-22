@@ -34,11 +34,13 @@ fn main() -> io::Result<()> {
     let mut res: u64 = 0;
 
     for code in &codes {
+        let mut seq: Vec<Vec<Key>> = Vec::new();
         // Third robot sequence (numeric keypad)
         let code_in_keys = code_to_keys(&code);
         println!("Codes: {:?}", code_in_keys);
+        seq.push(code_in_keys.clone());
         // Second robot sequence (directional keypad)
-        let mut seq = get_sequence(&code_in_keys, &numeric_keypad, (3, 2), (3, 0));
+        seq = get_sequence(&seq, &numeric_keypad, (3, 2), (3, 0));
         println!("Seq 2rd: {:?}", seq);
         // First robot sequence (directional keypad)
         seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
@@ -47,7 +49,14 @@ fn main() -> io::Result<()> {
         seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
         println!("Seq to type: {:?}", seq);
 
-        res += score(&seq, &code);
+        println!("LEN SEQ: {:?}", seq.len());
+
+        let min_seq = seq
+            .iter()
+            .min_by_key(|v| v.len())
+            .expect("No min sequence found");
+
+        res += score(&min_seq, &code);
     }
 
     println!("{res}");
@@ -64,7 +73,7 @@ where
 }
 
 #[repr(i8)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Key {
     None = -2,
     A = -1,
@@ -108,15 +117,14 @@ fn code_to_keys(code: &Vec<char>) -> Vec<Key> {
 }
 
 fn get_sequence(
-    code: &Vec<Key>,
+    codes: &Vec<Vec<Key>>,
     keypad: &Vec<[Key; 3]>,
     init_start: (usize, usize),
     forbidden_case: (usize, usize),
-) -> Vec<Key> {
-    let mut seq: Vec<Key> = Vec::new();
+) -> Vec<Vec<Key>> {
+    let mut sequences: Vec<Vec<Key>> = Vec::new();
     let height = keypad.len();
     let width = keypad[0].len();
-    let mut start = init_start;
 
     fn add_seq(
         start: (usize, usize),
@@ -171,30 +179,36 @@ fn get_sequence(
         }
     }
 
-    for key in code {
-        let mut target = (0, 0);
-        let mut found = false;
+    for code in codes {
+        let mut seq: Vec<Key> = Vec::new();
+        let mut start = init_start;
 
-        for row in 0..height {
-            for col in 0..width {
-                if keypad[row][col] == *key {
-                    target = (row, col);
-                    found = true;
+        for key in code {
+            let mut target = (0, 0);
+            let mut found = false;
+
+            for row in 0..height {
+                for col in 0..width {
+                    if keypad[row][col] == *key {
+                        target = (row, col);
+                        found = true;
+                        break;
+                    }
+                }
+                if found {
                     break;
                 }
             }
-            if found {
-                break;
-            }
+
+            add_seq(start, target, &mut seq, forbidden_case);
+            seq.push(Key::A);
+
+            start = target;
         }
-
-        add_seq(start, target, &mut seq, forbidden_case);
-        seq.push(Key::A);
-
-        start = target;
+        sequences.push(seq);
     }
 
-    return seq;
+    return sequences;
 }
 
 fn score(seq: &Vec<Key>, code: &Vec<char>) -> u64 {
