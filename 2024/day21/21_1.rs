@@ -44,10 +44,10 @@ fn main() -> io::Result<()> {
         println!("Seq 2rd: {:?}", seq);
         // First robot sequence (directional keypad)
         seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
-        println!("Seq 1st: {:?}", seq);
+        // println!("Seq 1st: {:?}", seq);
         // Sequence to type (directional keypad)
         seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
-        println!("Seq to type: {:?}", seq);
+        // println!("Seq to type: {:?}", seq);
 
         println!("LEN SEQ: {:?}", seq.len());
 
