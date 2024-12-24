@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -19,44 +20,16 @@ fn main() -> io::Result<()> {
         }
     }
 
-    let numeric_keypad = vec![
-        [Key::Seven, Key::Eight, Key::Nine],
-        [Key::Four, Key::Five, Key::Six],
-        [Key::One, Key::Two, Key::Three],
-        [Key::None, Key::Zero, Key::A],
-    ];
-
-    let directional_keypad = vec![
-        [Key::None, Key::Up, Key::A],
-        [Key::Left, Key::Down, Key::Right],
-    ];
-
     let mut res: u64 = 0;
 
     for code in &codes {
-        let mut seq: Vec<Vec<Key>> = Vec::new();
-        // Third robot sequence (numeric keypad)
-        let code_in_keys = code_to_keys(&code);
-        println!("Codes: {:?}", code_in_keys);
-        seq.push(code_in_keys.clone());
-        // Second robot sequence (directional keypad)
-        seq = get_sequence(&seq, &numeric_keypad, (3, 2), (3, 0));
-        println!("Seq 2rd: {:?}", seq);
-        // First robot sequence (directional keypad)
-        seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
-        // println!("Seq 1st: {:?}", seq);
-        // Sequence to type (directional keypad)
-        seq = get_sequence(&seq, &directional_keypad, (0, 2), (0, 0));
-        // println!("Seq to type: {:?}", seq);
-
-        println!("LEN SEQ: {:?}", seq.len());
-
-        let min_seq = seq
-            .iter()
-            .min_by_key(|v| v.len())
-            .expect("No min sequence found");
-
-        res += score(&min_seq, &code);
+        let keys = code_to_keys(code);
+        let numeric_str: String = code.iter().filter(|c| c.is_digit(10)).collect();
+        let numeric_value: u64 = numeric_str
+            .trim_start_matches('0')
+            .parse()
+            .expect("Invalid number");
+        res += compute_fewest(keys, 3) * numeric_value;
     }
 
     println!("{res}");
@@ -72,25 +45,24 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-#[repr(i8)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq, Copy)]
 enum Key {
-    None = -2,
-    A = -1,
-    Zero = 0,
-    One = 1,
-    Two = 2,
-    Three = 3,
-    Four = 4,
-    Five = 5,
-    Six = 6,
-    Seven = 7,
-    Eight = 8,
-    Nine = 9,
-    Up = 10,
-    Down = 11,
-    Left = 12,
-    Right = 13,
+    None,
+    A,
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 fn code_to_keys(code: &Vec<char>) -> Vec<Key> {
@@ -116,108 +88,127 @@ fn code_to_keys(code: &Vec<char>) -> Vec<Key> {
     return keys;
 }
 
-fn get_sequence(
-    codes: &Vec<Vec<Key>>,
-    keypad: &Vec<[Key; 3]>,
-    init_start: (usize, usize),
-    forbidden_case: (usize, usize),
-) -> Vec<Vec<Key>> {
-    let mut sequences: Vec<Vec<Key>> = Vec::new();
-    let height = keypad.len();
-    let width = keypad[0].len();
-
-    fn add_seq(
-        start: (usize, usize),
-        target: (usize, usize),
-        seq: &mut Vec<Key>,
-        forbidden_case: (usize, usize),
-    ) {
-        let row_diff = target.0 as isize - start.0 as isize;
-        let col_diff = target.1 as isize - start.1 as isize;
-
-        // Make sure that we do not pass by the forbidden case
-        if (start.1 == forbidden_case.1 && target.0 == forbidden_case.0)
-            || !(start.0 == forbidden_case.0 && target.1 == forbidden_case.1)
-        {
-            if col_diff > 0 {
-                for _ in 0..col_diff {
-                    seq.push(Key::Right);
-                }
-            } else {
-                for _ in 0..-col_diff {
-                    seq.push(Key::Left);
-                }
+fn get_key_coords(numeric: bool) -> HashMap<Key, (i32, i32)> {
+    let mut coords = HashMap::new();
+    if numeric {
+        // Numeric keypad coordinates
+        let layout = vec![
+            vec![Key::Seven, Key::Eight, Key::Nine],
+            vec![Key::Four, Key::Five, Key::Six],
+            vec![Key::One, Key::Two, Key::Three],
+            vec![Key::None, Key::Zero, Key::A],
+        ];
+        for (y, row) in layout.iter().enumerate() {
+            for (x, key) in row.iter().enumerate() {
+                coords.insert(*key, (x as i32, y as i32));
             }
-            if row_diff > 0 {
-                for _ in 0..row_diff {
-                    seq.push(Key::Down);
-                }
-            } else {
-                for _ in 0..-row_diff {
-                    seq.push(Key::Up);
-                }
-            }
-        } else {
-            if row_diff > 0 {
-                for _ in 0..row_diff {
-                    seq.push(Key::Down);
-                }
-            } else {
-                for _ in 0..-row_diff {
-                    seq.push(Key::Up);
-                }
-            }
-            if col_diff > 0 {
-                for _ in 0..col_diff {
-                    seq.push(Key::Right);
-                }
-            } else {
-                for _ in 0..-col_diff {
-                    seq.push(Key::Left);
-                }
+        }
+    } else {
+        // Directional keypad coordinates
+        let layout = vec![
+            vec![Key::None, Key::Up, Key::A],
+            vec![Key::Left, Key::Down, Key::Right],
+        ];
+        for (y, row) in layout.iter().enumerate() {
+            for (x, key) in row.iter().enumerate() {
+                coords.insert(*key, (x as i32, y as i32));
             }
         }
     }
-
-    for code in codes {
-        let mut seq: Vec<Key> = Vec::new();
-        let mut start = init_start;
-
-        for key in code {
-            let mut target = (0, 0);
-            let mut found = false;
-
-            for row in 0..height {
-                for col in 0..width {
-                    if keypad[row][col] == *key {
-                        target = (row, col);
-                        found = true;
-                        break;
-                    }
-                }
-                if found {
-                    break;
-                }
-            }
-
-            add_seq(start, target, &mut seq, forbidden_case);
-            seq.push(Key::A);
-
-            start = target;
-        }
-        sequences.push(seq);
-    }
-
-    return sequences;
+    return coords;
 }
 
-fn score(seq: &Vec<Key>, code: &Vec<char>) -> u64 {
-    let numeric_str: String = code.iter().filter(|c| c.is_digit(10)).collect();
-    let numeric_value: u64 = numeric_str
-        .trim_start_matches('0')
-        .parse()
-        .expect("Invalid number");
-    println!("Numeric value: {}", numeric_value);
-    println!("Sequence: {:?}", seq.len());
-    return seq.len() as u64 * numeric_value;
+fn get_path_keys(start: (i32, i32), end: (i32, i32)) -> Vec<Key> {
+    let mut path = Vec::new();
+    let dx = end.0 - start.0;
+    let dy = end.1 - start.1;
+
+    // Horizontal movement
+    if dx > 0 {
+        path.extend(vec![Key::Right; dx.abs() as usize]);
+    } else if dx < 0 {
+        path.extend(vec![Key::Left; dx.abs() as usize]);
+    }
+
+    // Vertical movement
+    if dy > 0 {
+        path.extend(vec![Key::Down; dy.abs() as usize]);
+    } else if dy < 0 {
+        path.extend(vec![Key::Up; dy.abs() as usize]);
+    }
+
+    return path;
+}
+
+fn fewest_presses(layer: u32, keys: &[Key], cache: &HashMap<(u32, Key, Key), u64>) -> u64 {
+    let mut total = 0;
+    let mut current = Key::A;
+
+    for &next_key in keys {
+        if let Some(&presses) = cache.get(&(layer, current, next_key)) {
+            total += presses;
+            current = next_key;
+        }
+    }
+    total
+}
+
+fn compute_fewest(keys: Vec<Key>, n_robot: u32) -> u64 {
+    let mut cache: HashMap<(u32, Key, Key), u64> = HashMap::new();
+
+    // Initialize base case (layer 0)
+    let dir_coords = get_key_coords(false);
+    for (&k1, _) in &dir_coords {
+        for (&k2, _) in &dir_coords {
+            cache.insert((0, k1, k2), 1);
+        }
+    }
+
+    // Build up through layers
+    for layer in 1..=n_robot {
+        let coords = if layer == n_robot {
+            get_key_coords(true) // numeric keypad for final layer
+        } else {
+            get_key_coords(false) // directional keypad for other layers
+        };
+
+        let forbidden_case = coords.get(&Key::None).unwrap();
+
+        for (&ki, &(xi, yi)) in &coords {
+            for (&kf, &(xf, yf)) in &coords {
+                // Try horizontal then vertical
+                let hor_first: u64;
+                let mid_point = (xf, yi);
+                if mid_point != *forbidden_case {
+                    let mut path = get_path_keys((xi, yi), mid_point);
+                    path.extend(get_path_keys(mid_point, (xf, yf)));
+                    path.push(Key::A);
+                    hor_first = fewest_presses(layer - 1, &path, &cache);
+                } else {
+                    hor_first = u64::MAX;
+                }
+
+                // Try vertical then horizontal
+                let ver_first: u64;
+                let mid_point = (xi, yf);
+                if mid_point != *forbidden_case {
+                    let mut path = get_path_keys((xi, yi), mid_point);
+                    path.extend(get_path_keys(mid_point, (xf, yf)));
+                    path.push(Key::A);
+                    ver_first = fewest_presses(layer - 1, &path, &cache);
+                } else {
+                    ver_first = u64::MAX;
+                }
+
+                if hor_first == u64::MAX && ver_first == u64::MAX {
+                    continue;
+                }
+
+                let min_presses = std::cmp::min(hor_first, ver_first);
+
+                cache.insert((layer, ki, kf), min_presses);
+            }
+        }
+    }
+    return fewest_presses(n_robot, &keys, &cache);
 }
