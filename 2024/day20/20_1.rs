@@ -1,5 +1,4 @@
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -21,13 +20,6 @@ fn main() -> io::Result<()> {
         }
     }
 
-    for i in 0..data.len() {
-        for j in 0..data[i].len() {
-            print!("{}", data[i][j]);
-        }
-        println!();
-    }
-
     let mut start: (usize, usize) = (0, 0);
     let mut end: (usize, usize) = (0, 0);
 
@@ -41,24 +33,16 @@ fn main() -> io::Result<()> {
         }
     }
 
-    println!("{:?}", start);
-    println!("{:?}", end);
+    let base_distances = flood_fill(&data, start, end);
 
-    let base_path = dijkstra(&data, start, end);
-    let base_path_len = base_path.len() - 1;
-
-    println!("{}", base_path_len);
     let mut res = 0;
 
     for i in 0..data.len() {
         for j in 0..data[i].len() {
             if data[i][j] == '#' {
-                if has_possible_cheats(&data, (i, j)) {
-                    let mut data_copy = data.clone();
-                    data_copy[i][j] = '.';
-                    let path = dijkstra(&data_copy, start, end);
-                    let path_len = path.len() - 1;
-                    if path_len + 100 <= base_path_len {
+                let possible_cheats = get_possible_cheats(&base_distances, (i, j));
+                for c in possible_cheats {
+                    if c >= 100 {
                         res += 1;
                     }
                 }
@@ -79,104 +63,86 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn dijkstra(
-    data: &Vec<Vec<char>>,
-    start: (usize, usize),
-    end: (usize, usize),
-) -> Vec<(usize, usize)> {
-    let rows = data.len();
-    let cols = data[0].len();
+fn flood_fill(data: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -> Vec<Vec<i32>> {
+    let mut distances: Vec<Vec<i32>> = vec![vec![-1; data[0].len()]; data.len()];
+    let mut heap = BinaryHeap::new();
+    heap.push((0, start));
 
-    let mut distances = vec![vec![usize::MAX; cols]; rows];
-    let mut priority_queue = BinaryHeap::new();
-    let mut predecessors = HashMap::new();
-
-    let directions = [(0, 1), (1, 0), (0, usize::MAX), (usize::MAX, 0)];
+    for i in 0..data.len() {
+        for j in 0..data[i].len() {
+            if data[i][j] == '#' {
+                distances[i][j] = -2;
+            }
+        }
+    }
 
     distances[start.0][start.1] = 0;
-    priority_queue.push(State {
-        cost: 0,
-        position: start,
-    });
 
-    while let Some(State { cost, position }) = priority_queue.pop() {
-        if position == end {
+    while !heap.is_empty() {
+        let (dist, pos) = heap.pop().unwrap();
+
+        if pos == end {
             break;
         }
 
-        if cost > distances[position.0][position.1] {
-            continue;
-        }
+        let directions = vec![(0, 1), (1, 0), (0, -1), (-1, 0)];
 
-        for dir in &directions {
-            let next_row = position.0.wrapping_add(dir.0);
-            let next_col = position.1.wrapping_add(dir.1);
+        for dir in directions {
+            let new_pos = (pos.0 as i32 + dir.0, pos.1 as i32 + dir.1);
 
-            if next_row < rows && next_col < cols && data[next_row][next_col] != '#' {
-                let next_cost = cost + 1;
-                if next_cost < distances[next_row][next_col] {
-                    distances[next_row][next_col] = next_cost;
-                    predecessors.insert((next_row, next_col), position);
-                    priority_queue.push(State {
-                        cost: next_cost,
-                        position: (next_row, next_col),
-                    });
-                }
+            if new_pos.0 < 0
+                || new_pos.0 >= data.len() as i32
+                || new_pos.1 < 0
+                || new_pos.1 >= data[0].len() as i32
+            {
+                continue;
+            }
+
+            let new_pos = (new_pos.0 as usize, new_pos.1 as usize);
+
+            if distances[new_pos.0][new_pos.1] == -2 {
+                continue;
+            }
+
+            let new_dist = dist + 1;
+
+            if distances[new_pos.0][new_pos.1] == -1 || new_dist < distances[new_pos.0][new_pos.1] {
+                distances[new_pos.0][new_pos.1] = new_dist;
+                heap.push((new_dist, new_pos));
             }
         }
     }
 
-    let mut path = Vec::new();
-    let mut current = end;
-    while current != start {
-        path.push(current);
-        if let Some(&prev) = predecessors.get(&current) {
-            current = prev;
-        } else {
-            break;
-        }
-    }
-    path.push(start);
-    path.reverse();
-    path
+    return distances;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
-struct State {
-    cost: usize,
-    position: (usize, usize),
-}
+fn get_possible_cheats(distances: &Vec<Vec<i32>>, pos: (usize, usize)) -> Vec<u32> {
+    let mut res = Vec::new();
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost)
-    }
-}
+    let north = (pos.0 as i32 - 1, pos.1 as i32);
+    let south = (pos.0 as i32 + 1, pos.1 as i32);
+    let east = (pos.0 as i32, pos.1 as i32 + 1);
+    let west = (pos.0 as i32, pos.1 as i32 - 1);
 
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+    // Check East - West cheat
+    if west.1 >= 0 && east.1 < distances[0].len() as i32 {
+        let distance1 = distances[east.0 as usize][east.1 as usize];
+        let distance2 = distances[west.0 as usize][west.1 as usize];
 
-fn has_possible_cheats(data: &Vec<Vec<char>>, pos: (usize, usize)) -> bool {
-    let rows = data.len();
-    let cols = data[0].len();
-
-    let directions = [(-1, 0), (0, 1), (1, 0), (0, -1)];
-
-    for dir in &directions {
-        let next_row = pos.0 as isize + dir.0;
-        let next_col = pos.1 as isize + dir.1;
-
-        if next_row >= 0 && next_row < rows as isize && next_col >= 0 && next_col < cols as isize {
-            let next_row = next_row as usize;
-            let next_col = next_col as usize;
-            if data[next_row][next_col] == '.' {
-                return true;
-            }
+        if distance1 >= 0 && distance2 >= 0 {
+            res.push((distance1 - distance2).abs() as u32 - 2);
         }
     }
 
-    return false;
+    // Check North - South cheat
+    if north.0 >= 0 && south.0 < distances.len() as i32 {
+        let distance1 = distances[north.0 as usize][north.1 as usize];
+        let distance2 = distances[south.0 as usize][south.1 as usize];
+
+        if distance1 >= 0 && distance2 >= 0 {
+            res.push((distance1 - distance2).abs() as u32 - 2);
+        }
+    }
+
+    return res;
 }
