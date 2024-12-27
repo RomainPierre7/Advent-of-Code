@@ -3,86 +3,9 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-fn is_clique(
-    connections: &HashMap<String, HashSet<String>>,
-    potential_clique: &HashSet<String>,
-) -> bool {
-    for computer1 in potential_clique {
-        if let Some(neighbors) = connections.get(computer1) {
-            // Vérifier que computer1 est connecté à tous les autres ordinateurs du set
-            for computer2 in potential_clique {
-                if computer1 != computer2 && !neighbors.contains(computer2) {
-                    return false;
-                }
-            }
-        } else {
-            return false;
-        }
-    }
-    true
-}
-
-fn find_max_clique(connections: &HashMap<String, HashSet<String>>) -> HashSet<String> {
-    let mut max_clique: HashSet<String> = HashSet::new();
-    let all_computers: HashSet<String> = connections.keys().cloned().collect();
-
-    // On commence par des cliques de taille 1 et on augmente progressivement
-    let mut current_clique: HashSet<String> = HashSet::new();
-
-    fn extend_clique(
-        current_clique: &mut HashSet<String>,
-        remaining_computers: &HashSet<String>,
-        max_clique: &mut HashSet<String>,
-        connections: &HashMap<String, HashSet<String>>,
-    ) {
-        // Si la clique courante est plus grande que la maximale trouvée jusqu'ici
-        if current_clique.len() > max_clique.len() {
-            max_clique.clear();
-            max_clique.extend(current_clique.iter().cloned());
-        }
-
-        // Pour chaque ordinateur restant
-        for computer in remaining_computers.clone() {
-            // Ajouter l'ordinateur à la clique courante
-            current_clique.insert(computer.clone());
-
-            // Vérifier si c'est toujours une clique valide
-            if is_clique(connections, current_clique) {
-                // Créer un nouveau set des ordinateurs restants qui sont connectés à tous
-                let mut new_remaining: HashSet<String> = remaining_computers
-                    .iter()
-                    .filter(|&c| {
-                        c != &computer
-                            && connections.get(c).map_or(false, |neighbors| {
-                                current_clique.iter().all(|pc| neighbors.contains(pc))
-                            })
-                    })
-                    .cloned()
-                    .collect();
-
-                // Continuer récursivement
-                extend_clique(current_clique, &new_remaining, max_clique, connections);
-            }
-
-            // Retirer l'ordinateur pour essayer d'autres combinaisons
-            current_clique.remove(&computer);
-        }
-    }
-
-    extend_clique(
-        &mut current_clique,
-        &all_computers,
-        &mut max_clique,
-        connections,
-    );
-    max_clique
-}
-
 fn main() -> io::Result<()> {
     let path = "23_input.txt";
     let mut data: Vec<(String, String)> = Vec::new();
-
-    // Lecture du fichier
     if let Ok(lines) = read_lines(path) {
         for line in lines {
             if let Ok(content) = line {
@@ -94,32 +17,45 @@ fn main() -> io::Result<()> {
         }
     }
 
-    // Construction du graphe
-    let mut connections: HashMap<String, HashSet<String>> = HashMap::new();
-    for (computer1, computer2) in data {
-        let set1 = connections
-            .entry(computer1.clone())
-            .or_insert(HashSet::new());
-        set1.insert(computer2.clone());
-
-        let set2 = connections
-            .entry(computer2.clone())
-            .or_insert(HashSet::new());
-        set2.insert(computer1.clone());
+    let mut network: HashMap<String, Vec<String>> = HashMap::new();
+    for (c1, c2) in data {
+        network.entry(c1.clone()).or_default().push(c2.clone());
+        network.entry(c2).or_default().push(c1);
     }
 
-    // Trouver la plus grande clique
-    let max_clique = find_max_clique(&connections);
+    let mut set_network: Vec<HashSet<String>> = Vec::new();
+    for (k, v) in &network {
+        let mut connected = HashSet::new();
+        connected.extend(v.iter().cloned());
+        connected.insert(k.clone());
+        set_network.push(connected);
+    }
 
-    println!("Plus grand ensemble d'ordinateurs tous reliés entre eux:");
-    println!("Taille: {}", max_clique.len());
-    println!("Ordinateurs: {:?}", max_clique);
+    let mut count: HashMap<Vec<String>, i32> = HashMap::new();
+    for i in 0..set_network.len() {
+        for j in (i + 1)..set_network.len() {
+            let intersection: HashSet<_> = set_network[i]
+                .intersection(&set_network[j])
+                .cloned()
+                .collect();
+            if intersection.len() > 10 {
+                let mut sorted_intersection: Vec<String> = intersection.into_iter().collect();
+                sorted_intersection.sort();
+                count
+                    .entry(sorted_intersection)
+                    .and_modify(|e| *e += 1)
+                    .or_insert(1);
+            }
+        }
+    }
 
-    let mut sorted_computers: Vec<String> = max_clique.into_iter().collect();
-    sorted_computers.sort();
-    let res = sorted_computers.join(",");
-
-    println!("{res}");
+    for (k, v) in count {
+        let n = k.len();
+        if (n * (n - 1)) as f64 / 2.0 == v as f64 {
+            println!("{}", k.join(","));
+            break;
+        }
+    }
 
     Ok(())
 }
